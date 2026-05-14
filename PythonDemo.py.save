@@ -1,13 +1,16 @@
 
 import numpy as np
 import re,time
-
+AdminInfo = {}
 UserDataDetails = {"First Name":"None","Surname":"None","Mobile +254":"None","Email":"None","Bio":"None","Username":"None","Security Questions":"None"}
 Array = np.array([[1,2,3],[4,5,6],[7,8,9]])
+StockInventory = {}
 class RegistrationAndLogin:
    def __init__(self,UserDataDetails,Array):
       self.UserDataDetails = UserDataDetails
       self.Array = Array
+      self.HomeInstance = Home(UserDataDetails,Array)
+      self.AdminInfo = AdminInfo
 
    @staticmethod
    def UserValidInputs(Prompt,ConditionFunc,ErrMsg,UserDataDetails,key):
@@ -24,7 +27,7 @@ class RegistrationAndLogin:
 
    @classmethod
    def UserAccountRegistration(cls,UserDataDetails,Array):
-      print("\n>>>   Account SignUp   >>>")
+      print("\n_______ Account SignUp ______ ")
       cls.HomeInstance = Home(UserDataDetails,Array)
       cls.FirstName = cls.UserValidInputs("\n>>> First Name :",lambda x: x.isalpha() and len(x) < 8,">>> Name Should Contain letters and max lenth of 8 character",UserDataDetails,"First Name")
       cls.Surname = cls.UserValidInputs("\n>>> Surname :",lambda y:y.isalpha() and len(y) < 8,">>> Name Should Contain letters and max lenth of 8 character",UserDataDetails,"Surname")
@@ -37,17 +40,60 @@ class RegistrationAndLogin:
       return cls.UserAccountLogin(UserDataDetails,cls.HomeInstance)
 
    @classmethod
-   def UserAccountLogin(cls,UserDataDetails,HomeInstance):
-      print("\n>>>   Welcome To Login   >>> ")
-      cls.LoginEmail = cls.GetUserLoginDetails("\n>>> Enter Your Email/Mobile Number :",lambda x:x in [UserDataDetails["Email"],UserDataDetails["Mobile +254"]],">>> Account doesn't Exists")
-      cls.LoginPassword = cls.GetUserLoginDetails("\n>>> Enter Your Password:",lambda x:x == UserDataDetails["Password"],">>> Wrong Password...Try Again")
-      def TimerLag(start=3,stop=0):
-         print("\n>>> Please wait...")
-         for x in range(start,stop,-1):
-            print(x)
-            time.sleep(1)
-      TimerLag()
-      return HomeInstance.HomePageIntro(UserDataDetails,Array)
+   def UserAccountLogin(cls,UserDataDetails,HomeInstance,AdminInfo,StockInventory):
+      print("\n______  Welcome To Login ______")
+      cls.AdminPanelInstance = AdminPanel(AdminInfo,StockInventory)
+      cls.LoginEmail = cls.GetUserLoginDetails("\n>>> Enter Your Email/Mobile Number :",lambda x:x in [UserDataDetails["Email"],UserDataDetails["Mobile +254"],'Admin@2026'],">>> Account doesn't Exists")
+      if cls.LoginEmail == 'Admin@2026':return cls.AdminPanelInstance.AdminAccountSignUp(UserDataDetails,Array,AdminInfo,StockInventory)
+      else:
+         cls.LoginPassword = cls.GetUserLoginDetails("\n>>> Enter Your Password:",lambda x:x == UserDataDetails["Password"],">>> Wrong Password...Try Again")
+         def TimerLag(start=3,stop=0):
+            print("\n>>> Please wait...")
+            for x in range(start,stop,-1):print(x);time.sleep(1)
+         TimerLag()
+         return HomeInstance.HomePageIntro(UserDataDetails,Array)
+
+   @classmethod
+   def LogInPanelAction(cls,UserDataDetails,Array,AdminInfo):
+      cls.HomeInstance = Home(UserDataDetails,Array)
+      print("\n______ Purity's Mart ______\n")
+      cls.HelpInstance = HelpPage(UserDataDetails,Array)
+      cls.LoginPanel = int(cls.GetUserLoginDetails("\n>>> Get all your house equipmets at affodable price.\n>>> Every Commodity you name it we got it.\n\n>>> Continue with ;\n>> 1: Create Account\n>> 2: Login\n>> 3: Help\n>> 4: Close App\n\n>>> Option :",lambda x:x.isdigit() and int(x) in [1,2,3,4],">>> Please select a valid input."))
+      if cls.LoginPanel == 1:return cls.UserAccountRegistration(UserDataDetails,Array)
+      elif cls.LoginPanel == 2:return cls.UserAccountLogin(UserDataDetails,cls.HomeInstance,AdminInfo,StockInventory)
+      elif cls.LoginPanel == 3:return cls.HelpInstance.HelpIntro(UserDataDetails,Array)
+      elif cls.LoginPanel == 4:return
+      else:return None
+
+   @classmethod
+   def LoginBack(cls,UserDataDetails,AdminInfo,Array):
+      print("\n______ Purity's Mart ______\n")
+      cls.HelpInstance = HelpPage(UserDataDetails,Array)
+      cls.LoginBackIntro = int(cls.GetUserLoginDetails("\n>>> Get all your house equipmets at affodable price.\n>>> Every Commodity you name it we got it.\n\n>>> Continue with ;\n>> 1: Create Account\n>> 2: Login\n>> 3: Help\n>>> Option :",lambda x:x.isdigit() and int(x) in [1,2,3],">>> Select a valid input"))
+      if cls.LoginBackIntro == 1:return cls.UserAccountRegistration(UserDataDetails,Array)
+      elif cls.LoginBackIntro == 2:return cls.AllLoginBack(UserDataDetails,cls.HomeInstance,AdminInfo)
+      elif cls.LoginBackIntro == 3:return cls.HelpInstance.HelpIntro(UserDataDetails,Array)
+
+   @classmethod
+   def AllLoginBack(cls,UserDataDetails,Array,AdminInfo,StockAvailableIn):
+      cls.AdminPanelInstance = AdminPanel(AdminInfo,StockInventory)
+      StockAvailableIn = StockInventory
+      cls.HomeInstance = Home(UserDataDetails,Array)
+      print("\n______ Welcome To Login ______\n")
+      cls.LoggedBack = cls.GetUserLoginDetails("\n>>> Enter Your Email/Mobile Number :",lambda x:x in [UserDataDetails["Email"],UserDataDetails["Mobile +254"],AdminInfo["Id No"]],">>> Account Doesn't exist.")
+      if cls.LoggedBack == UserDataDetails["Email"] and cls.LoggedBack == UserDataDetails["Mobile +254"]:
+         cls.GetUserLoginDetails("\n>>> Enter Password :",lambda x:x == UserDataDetails["Password"],">>> Wrong password")
+         print(f"\n>>> Welcome back ,{UserDataDetails["First Name"].capitalize()}")
+         return cls.HomeInstance.HomePageIntro(UserDataDetails,Array)
+      elif cls.LoggedBack == AdminInfo["Id No"]:
+         cls.GetUserLoginDetails(">>> Enter Password :",lambda x:x == AdminInfo["Admin Password"],">>> Wrong password")
+         print(f">>> Welcome back ,{AdminInfo["Admin Name"].capitalize()}")
+         return cls.AdminPanelInstance.AdminLogin(UserDataDetails,Array,AdminInfo,StockAvailableIn)
+      else:return None
+
+
+
+
 
 class Home:
    def __init__(self,UserDataDetails,Array):
@@ -62,17 +108,237 @@ class Home:
 
    @classmethod
    def HomePageIntro(cls,UserDataDetails,Array):
-      cls.NumpyInstance = ArrayActivity(UserDataDetails,Array)
+      #cls.NumpyInstance = ArrayActivity(UserDataDetails,Array)
       cls.TrialInstance = TrialExplore(UserDataDetails,Array)
       cls.HelpPageInstance = HelpPage(UserDataDetails,Array)
       cls.AccountSettingInstance = AccountSettings(UserDataDetails,Array)
-      print(">>>   Home Page   >>>")
+      print("________ Home Page ________")
       cls.HomeIn = int(cls.GetHomeDetails("\n>> 1: Numpy Operations\n>> 2: Trials Explore\n>> 3: Account Setting\n>> 4: Help Page\n>>> Option :",lambda x:x.isdigit() and int(x) in [1,2,3,4],">>> Please select 1-4."))
-      if cls.HomeIn == 1:return cls.NumpyInstance.ArrayInputsIntro(UserDataDetails,Array)
-      elif cls.HomeIn == 2:return cls.TrialInstance.TrialExploreIntro(UserDataDetails,Array)
+      #if cls.HomeIn == 1:return cls.NumpyInstance.ArrayInputsIntro(UserDataDetails,Array)
+      if cls.HomeIn == 2:return cls.TrialInstance.TrialExploreIntro(UserDataDetails,Array)
       elif cls.HomeIn == 3:return cls.AccountSettingInstance.AccountSettingIntro(UserDataDetails,Array)
       elif cls.HomeIn == 4 :return cls.HelpPageInstance.HelpIntro(UserDataDetails,Array)
       else :return None
+
+class AdminPanel:
+   def __init__(self,AdminInfo,StockInventory):
+      self.AdminInfo = AdminInfo
+      self.StockAvailableIn = StockInventory
+      self.StockAvailableIn = {
+                    "Bakery":{
+                              "Brown Bread":{"Price":0,"Available Stock":0},
+                              "White Bread":{"Price":0,"Available Stock":0},
+                              "White Scones":{"Price":0,"Available Stock":0},
+                              "Vanila Loaf Bread":{"Price":0,"Available Stock":0},
+                              "Queen Cakes":{"Price":0,"Available Stock":0},
+                              "Mandazi/Mahamri":{"Price":0,"Available Stock":0},
+                              "Fruit Cake":{"Price":0,"Available Stock":0},
+                              "Bread Rusk":{"Price":0,"Available Stock":0},
+                              "Chocolate Muffins":{"Price":0,"Available Stock":0},
+                              },
+                    "Dairy":{
+                              "Brown Bread":{"Price":0,"Available Stock":0},
+                              "White Bread":{"Price":0,"Available Stock":0},
+                              "White Scones":{"Price":0,"Available Stock":0},
+                              "Vanila Loaf Bread":{"Price":0,"Available Stock":0},
+                              "Queen Cakes":{"Price":0,"Available Stock":0},
+                              "Mandazi/Mahamri":{"Price":0,"Available Stock":0},
+                              "Fruit Cake":{"Price":0,"Available Stock":0},
+                              "Bread Rusk":{"Price":0,"Available Stock":0},
+                              "Chocolate Muffins":{"Price":0,"Available Stock":0},
+                              },
+                    "Cooking Essentials":{
+                              "Brown Bread":{"Price":0,"Available Stock":0},
+                              "White Bread":{"Price":0,"Available Stock":0},
+                              "White Scones":{"Price":0,"Available Stock":0},
+                              "Vanila Loaf Bread":{"Price":0,"Available Stock":0},
+                              "Queen Cakes":{"Price":0,"Available Stock":0},
+                              "Mandazi/Mahamri":{"Price":0,"Available Stock":0},
+                              "Fruit Cake":{"Price":0,"Available Stock":0},
+                              "Bread Rusk":{"Price":0,"Available Stock":0},
+                              "Chocolate Muffins":{"Price":0,"Available Stock":0},
+                              },
+                    "Personal Care Hygiene":{
+                              "Brown Bread":{"Price":0,"Available Stock":0},
+                              "White Bread":{"Price":0,"Available Stock":0},
+                              "White Scones":{"Price":0,"Available Stock":0},
+                              "Vanila Loaf Bread":{"Price":0,"Available Stock":0},
+                              "Queen Cakes":{"Price":0,"Available Stock":0},
+                              "Mandazi/Mahamri":{"Price":0,"Available Stock":0},
+                              "Fruit Cake":{"Price":0,"Available Stock":0},
+                              "Bread Rusk":{"Price":0,"Available Stock":0},
+                              "Chocolate Muffins":{"Price":0,"Available Stock":0},
+                              },
+                    "Home & Laundry":{
+                              "Brown Bread":{"Price":0,"Available Stock":0},
+                              "White Bread":{"Price":0,"Available Stock":0},
+                              "White Scones":{"Price":0,"Available Stock":0},
+                              "Vanila Loaf Bread":{"Price":0,"Available Stock":0},
+                              "Queen Cakes":{"Price":0,"Available Stock":0},
+                              "Mandazi/Mahamri":{"Price":0,"Available Stock":0},
+                              "Fruit Cake":{"Price":0,"Available Stock":0},
+                              "Bread Rusk":{"Price":0,"Available Stock":0},
+                              "Chocolate Muffins":{"Price":0,"Available Stock":0},
+                              },
+                    "Dry Pantry & Grains":{
+                               "Pembe 2kg Maize Flour":{"Price":0,"Available Stock":0},
+                               "Soko 2kg Maize Flour":{"Price":0,"Available Stock":0},
+                               "Ajab 2kg Maize Flour":{"Price":0,"Available Stock":0},
+                               "Amaize 2kg Maize Flour":{"Price":0,"Available Stock":0},
+                               "Raha 2kg Maize Flour":{"Price":0,"Available Stock":0},
+                               "Pisha 2kg Maize Flour":{"Price":0,"Available Stock":0},
+                               "Jogoo 2kg Maize Flour":{"Price":0,"Available Stock":0},
+                               "Pembe 1kg Maize Flour":{"Price":0,"Available Stock":0},
+                               "Soko 1kg Maize Flour":{"Price":0,"Available Stock":0},
+                               "Ajab 1kg Maize Flour":{"Price":0,"Available Stock":0},
+                               "Amaize 1kg Maize Flour":{"Price":0,"Available Stock":0},
+                               "Raha 1kg Maize Flour":{"Price":0,"Available Stock":0},
+                               "Pisha 1kg Maize Flour":{"Price":0,"Available Stock":0},
+                               "Jogoo 1kg Maize Flour":{"Price":0,"Available Stock":0},
+                               "Pembe 2kg Wheat Flour":{"Price":0,"Available Stock":0},
+                               "Soko 2kg Wheat Flour":{"Price":0,"Available Stock":0},
+                               "Ajab 2kg Wheat Flour":{"Price":0,"Available Stock":0},
+                               "Raha 2kg Wheat Flour":{"Price":0,"Available Stock":0},
+                               "Pembe 1kg Wheat Flour":{"Price":0,"Available Stock":0},
+                               "Soko 1kg Wheat Flour":{"Price":0,"Available Stock":0},
+                               "Ajab 1kg Wheat Flour":{"Price":0,"Available Stock":0},
+                               "Raha 1kg Wheat Flour":{"Price":0,"Available Stock":0},
+                               "Soko 2kg Uji Sour Wimbi":{"Price":0,"Available Stock":0},
+                               "Familia 2kg Uji Sour":{"Price":0,"Available Stock":0},
+                               "Familia 2kg Pure Wimbi":{"Price":0,"Available Stock":0},
+                               "Soko 2kg Pure Uji Wimbi":{"Price":0,"Available Stock":0},
+                               "Familia 1kg Uji Sour":{"Price":0,"Available Stock":0},
+                               "Familia 1kg Uji Pure Wimbi":{"Price":0,"Available Stock":0},
+                               "Soko 1kg Uji Sour":{"Price":0,"Available Stock":0},
+                               "Soko 1kg Pure Uji Wimbi":{"Price":0,"Available Stock":0},
+                               "Sugar 2kg ":{"Price":0,"Available Stock":0},
+                               "Salt 2kg":{"Price":0,"Available Stock":0},
+                               "Sugar 1kg":{"Price":0,"Available Stock":0},
+                               "Salt 1kg":{"Price":0,"Available Stock":0},
+                               "Salt 1/2":{"Price":0,"Available Stock":0},
+                               "Coffee 1kg":{"Price":0,"Available Stock":0},
+                               "Pishori 5kg":{"Price":0,"Available Stock":0},
+                               "Sindano 5kg":{"Price":0,"Available Stock":0},
+                               "Pishori 2kg":{"Price":0,"Available Stock":0},
+                               "Pishori 1kg":{"Price":0,"Available Stock":0},
+                               "Sindano 2kg":{"Price":0,"Available Stock":0},
+                               "Sindano 1kg":{"Price":0,"Available Stock":0},
+                               "Basmati 5kg":{"Price":0,"Available Stock":0},
+                               "Basmati 2kg":{"Price":0,"Available Stock":0},
+                               "Basmati 1kg":{"Price":0,"Available Stock":0},
+                               "Mwea 5kg":{"Price":0,"Available Stock":0},
+                               "Mwea 2kg":{"Price":0,"Available Stock":0},
+                               "Mwea 1kg":{"Price":0,"Available Stock":0},
+                               "Coffee 500g":{"Price":0,"Available Stock":0},
+                               "Coffee 250g":{"Price":0,"Available Stock":0},
+                               "Coffee 125g":{"Price":0,"Available Stock":0},
+                               "Ketepa Tea 1kg":{"Price":0,"Available Stock":0},
+                               "Ketepa Tea 500g":{"Price":0,"Available Stock":0},
+                               "Ketepa Tea 250g":{"Price":0,"Available Stock":0},
+                              }
+      }
+
+   @staticmethod
+   def GetAdminLoginDetails(Prompt,ConditionFunc,ErrMsg,AdminInfo,key):
+      while not ConditionFunc(val := input(Prompt)):
+         print(f"{val} is not allowed.\n{ErrMsg}")
+      AdminInfo[key] = val
+      return val
+
+   @staticmethod
+   def GetAdminInputs(Prompt,ConditionFunc,ErrMsg):
+      while not ConditionFunc(val := input(Prompt)):
+         print(f"{val} is not allowed.\n{ErrMsg}.")
+      return val
+
+   @classmethod
+   def AdminAccountSignUp(cls,UserDataDetails,Array,AdminInfo,StockAvailableIn):
+      print("\n________ Admin Panel ________\n")
+      cls.AdminName = cls.GetAdminLoginDetails("\n>>> Admin Name :",lambda x:x.isalpha() and len(x) <= 10,">>> Enter a Valid Admin name.",AdminInfo,"Admin Name")
+      cls.AdminNo = cls.GetAdminLoginDetails("\n>>> Mobile No\n>>>+254:",lambda x:x.isdigit() and len(x) == 9 and x[0] in ['1','7'],"Invalid Mobile number",AdminInfo,"Mobile No +254")
+      cls.AdminPassword = cls.GetAdminLoginDetails("\n>>> Create Admin Password :",lambda x:re.search(r"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[&$#@*_-¢€¥π×§∆√]).{8,}",x),">>> Create a strong password",AdminInfo,"Admin Password")
+      cls.Id_No = cls.GetAdminLoginDetails("\n>>> Id No :",lambda x:x.isdigit() and len(x) <= 10 and len(x) > 5,"Enter a valid id no",AdminInfo,"Id No")
+      def Timer(Start=3,Stop=0):
+         for i in range(Start,Stop,-1):print(i);time.sleep(1)
+      Timer()
+      return cls.AdminLogin(UserDataDetails,Array,AdminInfo,StockAvailableIn)
+
+   @classmethod
+   def AdminLogin(cls,UserDataDetails,Array,AdminInfo,StockAvailableIn):
+      print("\n______ Admin Login ______\n")
+      cls.GetAdminInputs("\n>>> Admin Id:",lambda x: x == AdminInfo["Id No"],">>> Wrong User")
+      cls.GetAdminInputs("\n>>> Admin Password :",lambda x:x == AdminInfo["Admin Password"],">>> Wrong Password Try Again")
+      def Timer(Start =3,Stop =0):
+         for x in range(Start,Stop,-1):print(x);time.sleep(1)
+      Timer()
+      return cls.StockActionIntro(UserDataDetails,Array,AdminInfo,StockAvailableIn)
+
+
+   @classmethod
+   def StockActionIntro(cls,UserDataDetails,Array,AdminInfo,StockAvailableIn):
+      cls.RegistrationInstance = RegistrationAndLogin(UserDataDetails,Array)
+      cls.StockAction = int(cls.GetAdminInputs("\n______ Admin Page ______\n\n>> 1: Stocks\n>> 2: Finance\n>> 3: Business Stats\n>> 4: Sign Out\n\n>>> Option :",lambda x: x.isdigit() and int(x) in [1,2,3,4],">>> Select a valid input"))
+      if cls.StockAction == 1:return cls.StockCategories(StockAvailableIn)
+      elif cls.StockAction == 2:return cls.FinanceStatus()
+      elif cls.StockAction == 3:return cls.BusinessStats()
+      elif cls.StockAction == 4:
+         def Timer(Start=3,Stop=0):
+            for x in range(Start,Stop,-1):print(x);time.sleep(0.75)
+         Timer()
+         return cls.RegistrationInstance.AllLoginBack(UserDataDetails,Array,AdminInfo,StockAvailableIn)
+      else:return None
+
+
+   """ Display Category Elementa"""
+   @classmethod
+   def AdminStock(cls,StockAvailableIn):
+      print("\n______ Stock In Shop _____\n")
+      for i, (key,value) in enumerate(StockAvailableIn.items()):print(f">> {i}. {key}:{value}")
+      cls.StockIntro = int(cls.GetAdminInputs("\n>>> Continue with ;\n>> 1: Add Stock\n>> 2: Remove Stock\n>> 3: Check All Stock Available\n>> 4: Go Back\n>>> Admin Option :",lambda x: x.isdigit() and int(x) in [1,2,3,4,5],">>> Select a valid Input."))
+      if cls.StockIntro == 1:return cls.StockCategories()
+
+
+   """ First display Stock category """
+   @classmethod
+   def StockCategories(cls,StockAvailableIn):
+      print("\n______ Stock Per Category ______\n\n>>> All categories of Stock Commodities.\n")
+      for i, category in enumerate(StockAvailableIn.keys()):print(f">> {i}: {category}")
+      cls.CategorySelect = int(cls.GetAdminInputs("\nContinue with;\n>> 1: Add Stock category\n>> 2: Remove Stock category\n>> 3: Go Back\n>>> Option :",lambda x:x.isdigit() and int(x) in [1,2,3],">>> Select a valid Input."))
+      if cls.CategorySelect == 1:return cls.AddStockCategory(StockAvailableIn)
+      elif cls.CategorySelect == 2:return cls.RemoveStockCategory(StockAvailableIn)
+      elif cls.CategorySelect == 3:return cls.StockActionIntro(UserDataDetails,Array,AdminInfo,StockInventory)
+      else:return None
+
+
+   def UpdateStockCommodities(self,Item,Quantity):
+      self.StockAvailableIn[Item] = self.StockAvailableIn.get(Item,0) + int(Quantity)
+
+   def SellStockCommodities(self,Item):
+      if Item in self.StockAvailableIn and self.StockAvailableIn[Item] > 0:
+         self.StockAvailableIn[Item] -=1
+         print(f">>> Sold :{Item}.Remaining :{self.StockAvailableIn[Item]}.")
+
+
+
+   @staticmethod
+   def AppendingStockIn(Prompt,ConditionFunc,ErrMsg,Stock,key):
+      while not ConditionFunc(val := input(Prompt)):
+         print(f">>> {val} is not allowed.\n{ErrMsg}")
+      Stock[key] = val
+      return val
+
+
+   @classmethod
+   def AddStockCategory(cls,StockAvailableIn):
+      print("\n______ Append Stock ______\n\n>>> Current Stock Categories include:\n")
+      for i,key in enumerate(StockAvailableIn.keys()):print(">> {i}: {key}")
+
+
+   @classmethod
+   def BusinessStats(cls):pass
+
+
+
 
 class AccountSettings:
    def __init__(self,UserDataDetails,Array):
@@ -150,7 +416,7 @@ class AccountSettings:
    @classmethod
    def UserBioEdits(cls,UserDataDetails):
       cls.NewUserBio = cls.GetAccountEdits(f"\n>>> Current Bio :{UserDataDetails["Bio"]}\n\n>>> New Bio :",lambda x:x.isalnum() and len(x) < 25,">>> Bio should not exceed 25 characters",UserDataDetails,"Bio")
-      cls.NewUserBioContinue = int(self.GetAccountInputs(">>> Continue with ;\n>> 1: Edit bio\n>> 2: Go Back\n>>> Option :",lambda x:x.isdigit() and int(x) in [1,2],">>> Please select 1-2"))
+      cls.NewUserBioContinue = int(cls.GetAccountInputs(">>> Continue with ;\n>> 1: Edit bio\n>> 2: Go Back\n>>> Option :",lambda x:x.isdigit() and int(x) in [1,2],">>> Please select 1-2"))
       if cls.NewUserBioContinue == 1:return cls.UserBioEdits(UserDataDetails)
       elif cls.NewUserBioContinue == 2:return cls.ProfileEdits(UserDataDetails)
       else:return None
@@ -158,7 +424,7 @@ class AccountSettings:
    @classmethod
    def UserProfilePicEdit(cls,UserDataDetails):
       print("\n>>> Oooops This section under Development >>>\n")
-      cls.UserProfilePicContinue = int(self.GetAccountInputs(">>> Continue with ;\n>> 1: Edit Profile picture\n>> 2: Go Back\n>>> Option :",lambda x:x.isdigit() and int(x) in [1,2],">>> Please select 1-2"))
+      cls.UserProfilePicContinue = int(cls.GetAccountInputs(">>> Continue with ;\n>> 1: Edit Profile picture\n>> 2: Go Back\n>>> Option :",lambda x:x.isdigit() and int(x) in [1,2],">>> Please select 1-2"))
       if cls.UserProfilePicContinue == 1:return cls.UserProfilePicEdit(UserDataDetails)
       elif cls.UserProfilePicContinue == 2:return cls.ProfileEdits(UserDataDetails)
       else:return None
@@ -245,11 +511,11 @@ class AccountSettings:
       elif cls.AccountDeletionContinue == 2:return cls.ProfileEdits(UserDataDetails)
       else:return None
 
-class ArrayActivity:
-   def __init__(self,Array,UserDataDetails):
+class HotelItems:
+   def __init__(self,UserDataDetails):
       self.Array = Array
       self.UserDataDetails = UserDataDetails
-      self.
+
 
    @staticmethod
    def GetArrayInputs(Prompt,ConditionFunc,ErrMsg):
@@ -267,30 +533,27 @@ class ArrayActivity:
       elif cls.ArrayIntro == 2:return cls.HomeInstance.HomePageIntro(UserDataDetails,Array)
       else:return None
 
+StocksAvailable = {}
+UserAdmin = {}
+class StockManagement:
+   def __init__(self,StockAvailable,UserDataDetails,UserAdmin):
+      self.StockAvailable = StockAvailable
+      self.UserDataDdetails = UserDataDetails
+      self.UserAdmin = UserAdmin
 
-
-   def ColumnOperations():pass
-   def RowOperations():pass
+   @staticmethod
+   def AppendItemKeys(Prompt,ConditionFunc,ErrMsg,StockAvailable,key):
+      pass
 
 
    @staticmethod
-   def MatrixOn(row,cols,dtype=np.float64):
-      Matrix = np.zeros((row,cols),dtype=dtype)
-      for i in range(row):
-         for j in range(cols):
-            val = ArrayActivity.GetArrayInputs(f"Set Values [{i},{j}]:",lambda x:x.replace('.','',1).isdigit(),"Invalid input")
-            Matrix[i,j] = float(val)
-      return Matrix
+   def AppendItemValue(Prompt,ConditionFunc,ErrMsg,StockAvailable,value):
+      pass
+
 
    @classmethod
-   def CreatingMatrix(cls):
-      cls.MatrixRowNo = int(GetArrayInputs("\n>>>    Array Creation   >>>\n• You will create an Array of own\n>> To continue select Order of your array\n\n>>> Enter No of Rows:",lambda x: x.isdigit() and int(x) <= 5,">>> Please enter a valid row range."))
-      cls.MatrixColumnNo = int(GetArrayInputs("\n>>> Enter No of Columns :",lambda x: x.isdigit() and int(x) <=5,">>> Please enter a valid column range."))
-      cls.ActiveMatrix = cls.MatrixOn(cls.MatrixRowNo,cls.MatrixColumnNo)
-      print()
-
-
-
+   def StockItem(cls,StockAvailable):
+      pass
 
 
 
@@ -336,7 +599,7 @@ class HelpPage:
    @classmethod
    def HelpIntro(cls,UserDataDetails,Array):
       cls.HomeInstance = Home(UserDataDetails,Array)
-      print(f"\n>>> Ooops this Area is Under Development\n")
+      print("\n>>> Ooops this Area is Under Development\n")
       cls.HelpPageIntro = int(cls.GetHelpInputs(">>> Continue with ;\n>> 1: Help page\n>> 2: Main Menu\n\n>>> Option :",lambda x:x.isdigit() and int(x) in [1,2],">>> Please select 1-2...Try Again"))
       if cls.HelpPageIntro == 1:return cls.HelpIntro(UserDataDetails,Array)
       elif cls.HelpPageIntro == 2:return cls.HomeInstance.HomePageIntro(UserDataDetails,Array)
@@ -347,4 +610,4 @@ class Close:pass
 
 if __name__ == '__main__':
    #Home.AccountSetting(UserDataDetails)
-   RegistrationAndLogin.UserAccountRegistration(UserDataDetails,Array)
+   RegistrationAndLogin.LogInPanelAction(UserDataDetails,Array,AdminInfo)
